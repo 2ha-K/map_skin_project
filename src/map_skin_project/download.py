@@ -5,6 +5,8 @@ from utils import ensure_path
 
 def download_osm_layers(place_name: str, save_dir: str = "data"):
     """
+    TODO: 加強精準度
+    https://wiki.openstreetmap.org/wiki/Zh-hant:Map_Features
     根據地名下載 OSM 圖層並各自儲存為 GeoJSON，適用於遊戲地圖製作。
 
     Args:
@@ -24,7 +26,11 @@ def download_osm_layers(place_name: str, save_dir: str = "data"):
 
     # 公園（leisure=park or playground）
     print("🌳 下載公園與綠地...")
-    gdf_parks = ox.features.features_from_place(place_name, tags={"leisure": ["park", "playground"]})
+    gdf_parks = ox.features.features_from_place(place_name, tags={
+        "leisure": True,
+        "landuse": True,
+        "natural": ["grassland", "wood"]
+    })
     gdf_parks.to_file(ensure_path(save_dir, "parks.geojson"), driver="GeoJSON")
     layers["parks"] = gdf_parks
 
@@ -64,4 +70,4 @@ def download_osm_layers(place_name: str, save_dir: str = "data"):
 
 # 測試用
 if __name__ == "__main__":
-    download_osm_layers("Xinyi District, Taipei, Taiwan")
+    download_osm_layers("Xitun District, Taichung, Taiwan")
