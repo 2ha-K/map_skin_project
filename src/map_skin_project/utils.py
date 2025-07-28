@@ -1,5 +1,5 @@
 from pathlib import Path
-
+import re
 
 def ensure_path(directory: str, filename: str) -> Path:
     """
@@ -15,3 +15,6 @@ def ensure_path(directory: str, filename: str) -> Path:
     path = Path(directory)
     path.mkdir(parents=True, exist_ok=True)
     return path / filename
+
+def slugify(name: str):
+    return re.sub(r'\W+', '_', name.lower()).strip('_')

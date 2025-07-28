@@ -7,6 +7,7 @@ import os
 
 def render_map(data_dir="data", output_path="output/xinyi_map.png", skin_fn=None):
     """
+    TODO: 貼皮功能
     讀取 GeoJSON 並畫出地圖，支援貼皮圖層函數（可選）。
 
     Args:
@@ -14,8 +15,8 @@ def render_map(data_dir="data", output_path="output/xinyi_map.png", skin_fn=None
         output_path (str): 最終輸出的 PNG 圖片位置
         skin_fn (function): 可選的自訂貼皮函式，會傳入 plt.gca() 當前畫布
     """
-    plt.figure(figsize=(10, 10))
-    ax = plt.gca()
+    plt.figure(figsize=(10, 10)) #建立畫布
+    ax = plt.gca() # gca = get current axes，取得當前的座標區
 
     layer_styles = {
         "water": {"color": "#68a7f5", "alpha": 0.6, "linewidth": 0},  # 湖水
@@ -26,6 +27,12 @@ def render_map(data_dir="data", output_path="output/xinyi_map.png", skin_fn=None
         "buildings": {"color": "#4a4a4a", "alpha": 1.0, "linewidth": 0}
     }
 
+    """
+    方法	回傳內容	用法範例
+    .keys()	所有 key	for k in d.keys()
+    .values()	所有值	for v in d.values()
+    .items()	所有 (key, value)	✅ for k, v in d.items() ← 你用的這個
+    """
     for layer, style in layer_styles.items():
         filepath = os.path.join(data_dir, f"{layer}.geojson")
         if os.path.exists(filepath):
@@ -35,8 +42,8 @@ def render_map(data_dir="data", output_path="output/xinyi_map.png", skin_fn=None
                     gdf.plot(
                         ax=ax,
                         color=style["color"],
-                        alpha=style["alpha"],
-                        linewidth=style["linewidth"]
+                        alpha=style["alpha"], # 使用透明度（0 = 透明，1 = 不透明）
+                        linewidth=style["linewidth"] # 線條粗細，適用於線狀圖層（如道路、河流）
                     )
             except Exception as e:
                 print(f"⚠️ Failed to render layer: {layer}, error: {e}")
@@ -46,7 +53,11 @@ def render_map(data_dir="data", output_path="output/xinyi_map.png", skin_fn=None
         skin_fn(ax)
 
     plt.axis('off')
-    plt.tight_layout()
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    plt.tight_layout() #  自動調整畫布內的空間配置，避免圖形被截掉
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)# exist_ok=True 表示：「如果資料夾已經存在也沒關係，不會報錯」。
     plt.savefig(output_path, dpi=600, bbox_inches='tight', pad_inches=0)
+    """
+    bbox_inches='tight'	自動裁切圖片邊緣的空白區域
+    pad_inches=0	不保留邊界空間（等於邊到邊）
+    """
     plt.close()
