@@ -5,7 +5,7 @@ from utils import ensure_path
 
 def download_osm_layers(place_name: str, save_dir: str = "data"):
     """
-    根據地名下載 OSM 圖層（建築、公園、道路、水域）並各自儲存為 GeoJSON。
+    根據地名下載 OSM 圖層並各自儲存為 GeoJSON，適用於遊戲地圖製作。
 
     Args:
         place_name (str): 地名，例如 "Xinyi District, Taipei, Taiwan"
@@ -22,28 +22,46 @@ def download_osm_layers(place_name: str, save_dir: str = "data"):
     gdf_building.to_file(ensure_path(save_dir, "buildings.geojson"), driver="GeoJSON")
     layers["buildings"] = gdf_building
 
-    # 公園
-    print("🌳 下載公園...")
-    gdf_parks = ox.features.features_from_place(place_name, tags={"leisure": "park"})
+    # 公園（leisure=park or playground）
+    print("🌳 下載公園與綠地...")
+    gdf_parks = ox.features.features_from_place(place_name, tags={"leisure": ["park", "playground"]})
     gdf_parks.to_file(ensure_path(save_dir, "parks.geojson"), driver="GeoJSON")
     layers["parks"] = gdf_parks
 
-    # 道路
+    # 道路（各級道路）
     print("🛣️ 下載道路...")
     gdf_roads = ox.features.features_from_place(place_name, tags={"highway": True})
     gdf_roads.to_file(ensure_path(save_dir, "roads.geojson"), driver="GeoJSON")
     layers["roads"] = gdf_roads
 
-    # 河流與湖泊
-    print("🌊 下載水域與森林...")
-    gdf_water = ox.features.features_from_place(place_name, tags={"natural": ["water", "wood"]})
+    # 河流、湖泊（natural=water or waterway）
+    print("🌊 下載水體（水域）...")
+    gdf_water = ox.features.features_from_place(place_name, tags={"natural": "water"})
     gdf_water.to_file(ensure_path(save_dir, "water.geojson"), driver="GeoJSON")
     layers["water"] = gdf_water
+
+    # 河川與溪流（流動水體）
+    print("🛶 下載河流與溪流...")
+    gdf_rivers = ox.features.features_from_place(place_name, tags={"waterway": True})
+    gdf_rivers.to_file(ensure_path(save_dir, "rivers.geojson"), driver="GeoJSON")
+    layers["rivers"] = gdf_rivers
+
+    # 森林或樹林區（natural=wood）
+    print("🌲 下載森林區...")
+    gdf_wood = ox.features.features_from_place(place_name, tags={"natural": "wood"})
+    gdf_wood.to_file(ensure_path(save_dir, "forest.geojson"), driver="GeoJSON")
+    layers["forest"] = gdf_wood
+
+    # 可選：地標（POI）
+    # print("📍下載學校與車站...")
+    # gdf_poi = ox.features.features_from_place(place_name, tags={"amenity": ["school", "bus_station"]})
+    # gdf_poi.to_file(ensure_path(save_dir, "poi.geojson"), driver="GeoJSON")
+    # layers["poi"] = gdf_poi
 
     print(f"✅ 所有圖層已儲存至：{save_dir}/")
     return layers
 
 
-# 測試
+# 測試用
 if __name__ == "__main__":
     download_osm_layers("Xinyi District, Taipei, Taiwan")
