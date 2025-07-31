@@ -1,7 +1,7 @@
 from download import download_osm_layers
 from  render import render_map
 
-download_osm_layers("Xitun District, Taichung, Taiwan")
+download_osm_layers("清華大學, 新竹市, 台灣")
 
 render_map(
     data_dir="data",  # 你放 geojson 的資料夾

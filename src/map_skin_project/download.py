@@ -35,8 +35,13 @@ def download_osm_layers(place_name: str, save_dir: str = "data"):
     layers["parks"] = gdf_parks
 
     # 道路（各級道路）
+    road_types = [
+        "motorway", "trunk", "primary", "secondary", "tertiary",
+        "residential", "unclassified", "service", "living_street",
+        "pedestrian", "footway", "cycleway", "path"
+    ]
     print("🛣️ 下載道路...")
-    gdf_roads = ox.features.features_from_place(place_name, tags={"highway": True})
+    gdf_roads = ox.features.features_from_place(place_name, tags={"highway": road_types})
     gdf_roads.to_file(ensure_path(save_dir, "roads.geojson"), driver="GeoJSON")
     layers["roads"] = gdf_roads
 

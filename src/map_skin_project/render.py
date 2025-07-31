@@ -20,8 +20,8 @@ def render_map(data_dir="data", output_path="output/xinyi_map.png", skin_fn=None
     ax.set_facecolor("#d2d2f7")
 
     layer_styles = {
-        "water": {"color": "#68a7f5", "alpha": 0.6, "linewidth": 0},  # 湖水(可能要改)
-        "rivers": {"color": "#8c8ced", "alpha": 0.8, "linewidth": 0.3},  # 河流
+        "water": {"color": "#8c8ced", "alpha": 0.6, "linewidth": 0},  # 湖水
+        "rivers": {"color": "#8c8ced", "alpha": 0.8, "linewidth": 0.3},  # 河流(可能不需要)
         "parks": {"color": "#c4e292", "alpha": 0.8, "linewidth": 0}, # 加上小草
         "forest": {"color": "#a1c96a", "alpha": 0.6, "linewidth": 0}, #加上樹林
         "roads": {"color": "#ffffff", "alpha": 1.0, "linewidth": 0.5},
