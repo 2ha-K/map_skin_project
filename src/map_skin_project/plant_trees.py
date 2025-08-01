@@ -7,8 +7,9 @@ from PIL import Image
 
 """
 TODO:
-1. 自動初始化合理的樹木
-2. 多航是加速
+1. 自動初始化合理數量的樹木
+2. 多行是加速，可以同時檢查多角度
+3. 樹木的分配左右上下平衡
 """
 
 def plant_tree(base, tree, x, y, output_path, tree_width, tree_height):

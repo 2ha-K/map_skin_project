@@ -1,11 +1,11 @@
 import os
 import osmnx as ox
 
-from utils import ensure_path, save_map_metadata
+from map_skin_project.map_utils import ensure_path, save_map_metadata
 
 def download_osm_layers(place_name: str, save_dir: str = "data"):
     """
-    TODO: 加強精準度
+    TODO: 加強精準度, 座標定位版本, 更層級的精準配合
     https://wiki.openstreetmap.org/wiki/Zh-hant:Map_Features
     根據地名下載 OSM 圖層並各自儲存為 GeoJSON，適用於遊戲地圖製作。
 

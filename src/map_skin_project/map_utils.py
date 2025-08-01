@@ -18,7 +18,7 @@ def ensure_path(directory: str, filename: str) -> Path:
     return path / filename
 
 def slugify(name: str):
-    return re.sub(r'\W+', '_', name.lower()).strip('_')
+    return re.sub(r'[^\w\u4e00-\u9fff]+', '_', name.lower()).strip('_')
 
 import json
 
@@ -26,4 +26,6 @@ def save_map_metadata(filepath: str, metadata: dict):
     with open(filepath, "w", encoding="utf-8") as f:
         json.dump(metadata, f, indent=2)
 
-
+# 測試用
+if __name__ == "__main__":
+    print(slugify("清華大學, 新竹市, 台灣"))

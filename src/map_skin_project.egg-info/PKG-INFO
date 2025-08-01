@@ -1,0 +1,10 @@
+Metadata-Version: 2.4
+Name: map_skin_project
+Version: 0.1
+Summary: Styled static map generator using OSM and Python
+Requires-Dist: osmnx
+Requires-Dist: geopandas
+Requires-Dist: matplotlib
+Requires-Dist: shapely
+Dynamic: requires-dist
+Dynamic: summary
