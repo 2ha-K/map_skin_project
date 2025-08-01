@@ -52,8 +52,9 @@ def random_picked(green_coordinates,trees_num, tree_height, grid_size=100):
             break
         coord_list = grid[key]
         if coord_list:
+            count = 1
             while True:
-                count=1
+
                 chosen = random.choice(coord_list)
                 if check_tree_too_close(tree_height, chosen, green_coordinates, selected):
                     print(f"第{count}次嘗試失敗，此點位離非綠地或其他點位太近")
@@ -68,13 +69,13 @@ def random_picked(green_coordinates,trees_num, tree_height, grid_size=100):
     return selected
 
 def check_tree_too_close(tree_height, coord, green_coordinates, selected):
-    trees_space_between = 24 / tree_height
-    tree_space_beside = 35 / tree_height
+    trees_space_between = tree_height*0.08
+    tree_space_beside = tree_height*0.06
 
     #檢查是否離非綠地方處太近(由邊界到本點應該都要是綠色)
     cx, cy = coord
     for angle_deg in range(0, 360, 15):
-        print(f"現在檢查{angle_deg}")
+        print(f"{coord}點位檢查: 檢查點位於{angle_deg}度，半徑: {tree_space_beside}處位置是否為綠地")
         angle_rad = math.radians(angle_deg)
         x = int(round(cx + tree_space_beside * math.cos(angle_rad)))
         y = int(round(cy + tree_space_beside * math.sin(angle_rad)))
@@ -82,7 +83,7 @@ def check_tree_too_close(tree_height, coord, green_coordinates, selected):
             return True
 
     for selected_coord in selected:
-        print(f"現在檢查與{selected_coord}的距離")
+        print(f"({coord})點位檢查: 檢查與儲備點{selected_coord}的距離是否會太近")
         dist = math.dist(coord, selected_coord)
         if dist < trees_space_between:
             return True
