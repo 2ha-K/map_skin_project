@@ -1,10 +1,11 @@
 import json
 from PIL import Image
 
-def plant_tree(base, tree, x, y, output_path):
-    base.paste(tree, (x, y), mask=tree)
+def plant_tree(base, tree, x, y, output_path, tree_height):
+    y_tree_button = y-tree_height//2
+    base.paste(tree, (x, y_tree_button), mask=tree)#座標位於樹底
     base.save(output_path)
-    print(f"✅ 已將樹貼在位置 ({x}, {y})：{output_path}")
+    print(f"✅ 已將樹貼在位置 ({x}, {y_tree_button})：{output_path}")
 
 def plant_a_tree_in_center(
     base_path="output/test_map.png",
@@ -36,4 +37,4 @@ def plant_a_tree_in_center(
     x = (bw - tw) // 2
     y = (bh - th) // 2
 
-    plant_tree(base, tree, x, y, output_path)
+    plant_tree(base, tree, x, y, output_path, tree_size_px)
