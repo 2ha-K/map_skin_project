@@ -11,9 +11,49 @@ def plant_tree(base, tree, x, y, output_path, tree_width, tree_height):
     base.save(output_path)
     print(f"✅ 已將樹貼在位置 ({x_tree_middle}, {y_tree_button})：{output_path}")
 
+# 隨機挑選函式version 1.1
+def random_picked(green_coordinates,trees_num, grid_size=100):
+    """
+    在綠地座標中隨機挑選 trees_num 個點，保證平均分布又不擁擠。
+
+    Args:
+        green_coordinates (List[Tuple[int, int]]): 綠色區域的像素座標
+        image_width (int): 地圖寬度
+        image_height (int): 地圖高度
+        trees_num (int): 要挑選的樹數量
+        grid_size (int): 格子邊長（單位：像素），數值越大 → 每棵樹越分散
+
+    Returns:
+        List[Tuple[int, int]]: 最終挑選的樹木種植座標
+    """
+    # 1. 將綠地點分類進格子中
+    grid = {}
+    for x, y in green_coordinates:
+        gx = x // grid_size
+        gy = y // grid_size
+        key = (gx, gy)
+        if key not in grid:
+            grid[key] = []
+        grid[key].append((x, y))
+
+    # 2. 打亂格子順序，在每格挑 1 點，直到選滿
+    grid_keys = list(grid.keys())
+    random.shuffle(grid_keys)
+
+    selected = []
+    for key in grid_keys:
+        if len(selected) >= trees_num:
+            break
+        coord_list = grid[key]
+        if coord_list:
+            chosen = random.choice(coord_list)
+            selected.append(chosen)
+
+    return selected
+
 def random_plant_tree(base, tree, output_path, tree_width, tree_height, green_coordinates, trees_num):
     # 先選出10個，這樣排列的方式從上到下才不會樹木覆蓋到葉子
-    picked_coordinates = random.sample(green_coordinates, trees_num)
+    picked_coordinates = random_picked(green_coordinates, trees_num)
     sorted_coords = sorted(picked_coordinates, key=itemgetter(1))
     for coord in sorted_coords:
         x, y = coord
@@ -75,9 +115,6 @@ def get_green_coordinates(image_path):
                 green_coords.append((x, y))
 
     return green_coords
-
-def choose_random_coordinate(coords):
-    return random.choice(coords) if coords else None
 
 def plant_a_tree_in_center(
     base_path="output/test_map.png",
