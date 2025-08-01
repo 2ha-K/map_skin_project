@@ -19,7 +19,7 @@ def plant_tree(base, tree, x, y, output_path, tree_width, tree_height):
     print(f"✅ 已將樹貼在位置 ({x_tree_middle}, {y_tree_button})：{output_path}")
 
 # 隨機挑選函式version 1.1
-def random_picked(green_coordinates,trees_num, tree_height, grid_size=100):
+def random_picked(green_coordinates,trees_num, tree_height, grid_size):
     """
     在綠地座標中隨機挑選 trees_num 個點，保證平均分布又不擁擠。
 
@@ -90,9 +90,9 @@ def check_tree_too_close(tree_height, coord, green_coordinates, selected):
     return False
 
 
-def random_plant_tree(base, tree, output_path, tree_width, tree_height, green_coordinates, trees_num):
+def random_plant_tree(base, tree, output_path, tree_width, tree_height, green_coordinates, trees_num, grid_size):
     # 先選出10個，這樣排列的方式從上到下才不會樹木覆蓋到葉子
-    picked_coordinates = random_picked(green_coordinates, trees_num, tree_height)
+    picked_coordinates = random_picked(green_coordinates, trees_num, tree_height, grid_size)
     sorted_coords = sorted(picked_coordinates, key=itemgetter(1))
     for coord in sorted_coords:
         x, y = coord
@@ -109,8 +109,13 @@ def plant_trees_at_random_green(
     tree_path="assets/park_tree.png",
     output_path="output/test_tree.png",
     map_info_path="output/map_info.json",
-    tree_real_world_size_m=100,  # 樹在現實中約佔 10 公尺
-    trees_num=10
+    tree_real_world_size_m=100,  # 預設樹在現實中約佔的公尺
+    trees_num=10,
+    x_start_width_percent = 0,
+    x_end_width_percent = 100,
+    y_start_width_percent = 0,
+    y_end_width_percent = 100,
+    grid_size=100
     ):
 
     # 讀取底圖與樹圖
@@ -131,9 +136,21 @@ def plant_trees_at_random_green(
     tree = tree.resize((int(tree_size_px * aspect_ratio), tree_size_px), resample=Image.Resampling.LANCZOS)
 
     #找出隨機樹個綠色的點種樹
-    green_coordinates = get_green_coordinates(base_path)
-    random_plant_tree(base, tree, output_path, tree_size_px * aspect_ratio,tree_size_px, green_coordinates, trees_num)
-
+    green_coordinates, img_size = get_green_coordinates(base_path)
+    my_coordinates = green_coordinates
+    if not (x_start_width_percent == 0 and x_end_width_percent == 100 and y_start_width_percent == 0 and y_end_width_percent == 100):
+        width, height = img_size
+        #由上至下，由左至右
+        x_start_pixel = width*x_start_width_percent/100
+        x_end_pixel = width*x_end_width_percent/100
+        y_start_pixel = height*y_start_width_percent/100
+        y_end_pixel = height*y_end_width_percent/100
+        my_coordinates = [
+            (px, py)
+            for px, py in green_coordinates
+            if x_start_pixel <= px <= x_end_pixel and y_start_pixel <= py <= y_end_pixel
+        ]
+    random_plant_tree(base, tree, output_path, tree_size_px * aspect_ratio,tree_size_px, my_coordinates, trees_num, grid_size)
 
 def is_green(pixel):
     r, g, b = pixel
@@ -153,7 +170,7 @@ def get_green_coordinates(image_path):
             if is_green(pixel):
                 green_coords.append((x, y))
 
-    return green_coords
+    return green_coords, img.size
 
 def plant_a_tree_in_center(
     base_path="output/test_map.png",
