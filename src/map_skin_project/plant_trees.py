@@ -1,5 +1,6 @@
 import json
 import random
+from operator import itemgetter, attrgetter
 
 from PIL import Image
 
@@ -13,14 +14,14 @@ def plant_tree(base, tree, x, y, output_path, tree_width, tree_height):
 def random_plant_tree(base, tree, output_path, tree_width, tree_height, green_coordinates, trees_num):
     # 先選出10個，這樣排列的方式從上到下才不會樹木覆蓋到葉子
     picked_coordinates = random.sample(green_coordinates, trees_num)
-    sorted_coords = sorted(picked_coordinates, key=lambda p: p[1], reverse=True)
+    sorted_coords = sorted(picked_coordinates, key=itemgetter(1))
     for coord in sorted_coords:
         x, y = coord
         x_tree_middle = int(x - tree_width // 2)
         y_tree_button = int(y - tree_height)
         base.paste(tree, (x_tree_middle, y_tree_button), mask=tree)  # 座標位於樹底
 
-        print(f"樹貼在位置 ({x}, {y_tree_button})")
+        print(f"樹貼在位置 ({x_tree_middle}, {y_tree_button})")
     base.save(output_path)
     print(f"✅ 已將{trees_num}棵樹樹輸出於：{output_path}")
 
