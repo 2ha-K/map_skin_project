@@ -1,8 +1,15 @@
 import json
+import math
 import random
 from operator import itemgetter, attrgetter
 
 from PIL import Image
+
+"""
+TODO:
+1. 自動初始化合理的樹木
+2. 多航是加速
+"""
 
 def plant_tree(base, tree, x, y, output_path, tree_width, tree_height):
     x_tree_middle = int(x - tree_width // 2)
@@ -12,20 +19,19 @@ def plant_tree(base, tree, x, y, output_path, tree_width, tree_height):
     print(f"✅ 已將樹貼在位置 ({x_tree_middle}, {y_tree_button})：{output_path}")
 
 # 隨機挑選函式version 1.1
-def random_picked(green_coordinates,trees_num, grid_size=100):
+def random_picked(green_coordinates,trees_num, tree_height, grid_size=100):
     """
     在綠地座標中隨機挑選 trees_num 個點，保證平均分布又不擁擠。
 
     Args:
         green_coordinates (List[Tuple[int, int]]): 綠色區域的像素座標
-        image_width (int): 地圖寬度
-        image_height (int): 地圖高度
         trees_num (int): 要挑選的樹數量
         grid_size (int): 格子邊長（單位：像素），數值越大 → 每棵樹越分散
 
     Returns:
         List[Tuple[int, int]]: 最終挑選的樹木種植座標
     """
+
     # 1. 將綠地點分類進格子中
     grid = {}
     for x, y in green_coordinates:
@@ -46,14 +52,46 @@ def random_picked(green_coordinates,trees_num, grid_size=100):
             break
         coord_list = grid[key]
         if coord_list:
-            chosen = random.choice(coord_list)
-            selected.append(chosen)
+            while True:
+                count=1
+                chosen = random.choice(coord_list)
+                if check_tree_too_close(tree_height, chosen, green_coordinates, selected):
+                    print(f"第{count}次嘗試失敗，此點位離非綠地或其他點位太近")
+                    count = count + 1
+                    if count > 10:
+                        print("此區域的點位已經嘗試超過10次，將更換下一個區域")
+                        break
+                    continue
+                selected.append(chosen)
+                break
 
     return selected
 
+def check_tree_too_close(tree_height, coord, green_coordinates, selected):
+    trees_space_between = 24 / tree_height
+    tree_space_beside = 35 / tree_height
+
+    #檢查是否離非綠地方處太近(由邊界到本點應該都要是綠色)
+    cx, cy = coord
+    for angle_deg in range(0, 360, 15):
+        print(f"現在檢查{angle_deg}")
+        angle_rad = math.radians(angle_deg)
+        x = int(round(cx + tree_space_beside * math.cos(angle_rad)))
+        y = int(round(cy + tree_space_beside * math.sin(angle_rad)))
+        if (x, y) not in green_coordinates:
+            return True
+
+    for selected_coord in selected:
+        print(f"現在檢查與{selected_coord}的距離")
+        dist = math.dist(coord, selected_coord)
+        if dist < trees_space_between:
+            return True
+    return False
+
+
 def random_plant_tree(base, tree, output_path, tree_width, tree_height, green_coordinates, trees_num):
     # 先選出10個，這樣排列的方式從上到下才不會樹木覆蓋到葉子
-    picked_coordinates = random_picked(green_coordinates, trees_num)
+    picked_coordinates = random_picked(green_coordinates, trees_num, tree_height)
     sorted_coords = sorted(picked_coordinates, key=itemgetter(1))
     for coord in sorted_coords:
         x, y = coord
