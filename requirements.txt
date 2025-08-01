@@ -1,4 +1,8 @@
-osmnx
-geopandas
-matplotlib
-shapely
+osmnx~=2.0.5
+geopandas~=1.1.1
+matplotlib~=3.10.3
+shapely~=2.1.1
+
+numpy~=2.3.2
+setuptools~=80.9.0
+pillow~=11.3.0

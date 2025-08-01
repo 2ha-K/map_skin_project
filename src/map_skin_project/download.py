@@ -1,7 +1,7 @@
 import os
 import osmnx as ox
 
-from utils import ensure_path
+from utils import ensure_path, save_map_metadata
 
 def download_osm_layers(place_name: str, save_dir: str = "data"):
     """
@@ -33,6 +33,22 @@ def download_osm_layers(place_name: str, save_dir: str = "data"):
     })
     gdf_parks.to_file(ensure_path(save_dir, "parks.geojson"), driver="GeoJSON")
     layers["parks"] = gdf_parks
+
+    minx, miny, maxx, maxy = gdf_parks.total_bounds
+    geo_width = maxx - minx
+    geo_height = maxy - miny
+    degrees_per_pixel = geo_width / 6000
+
+    metadata = {
+        "geo_width_deg": geo_width,
+        "geo_height_deg": geo_height,
+        "degrees_per_pixel": degrees_per_pixel,
+    }
+
+    save_metadata_dir = "output/map_info.json"
+    save_map_metadata(filepath=save_metadata_dir, metadata=metadata)
+    print(f"✅ 已建立比例尺於：{save_metadata_dir}/")
+
 
     # 道路（各級道路）
     road_types = [
