@@ -1,7 +1,9 @@
 from download import download_osm_layers
 from  render import render_map
 
-download_osm_layers("清華大學, 新竹市, 台灣")
+download_osm_layers(place_name="清華大學, 新竹市, 台灣")
+# download_osm_layers(mode="bbox", bbox=(120.6415, 24.1805, 120.6498,24.1858))
+# download_osm_layers(mode="longitude_latitude", center_longitude_latitude=(121.5397, 25.0173))
 
 render_map(
     data_dir="data",  # 你放 geojson 的資料夾

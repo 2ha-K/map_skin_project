@@ -1,38 +1,86 @@
 import os
 import osmnx as ox
+from shapely.lib import distance
 
-from map_skin_project.map_utils import ensure_path, save_map_metadata
+from map_skin_project.map_utils import ensure_path, save_map_metadata, km_to_latitude_degrees, km_to_longitude_degrees, delete_file_by_name
 
-def download_osm_layers(place_name: str, save_dir: str = "data"):
+def download_osm_layers(
+    place_name: str = None,
+    mode: str = "location",
+    bbox: tuple = None,  # (minx, miny, maxx, maxy) 在 Python 中，tuple（元組）是一種**不可變（immutable）**的序列資料型別，功能類似 list，但不能修改其中的元素。
+    center_longitude_latitude: tuple = None,
+    width_km: float =0.5,
+    height_km: float = 0.5,
+    save_dir: str = "data",
+
+):
     """
-    TODO: 加強精準度, 座標定位版本, 更層級的精準配合
+    根據地名或經緯度邊界下載 OSM 圖層。
+
+
+    TODO: 加強精準度, 座標定位版本, 更層級的精準配合, 改成向osm map的比例尺形式, 圖片大小(🛠️ 範例程式：使用 gdf.clip(...) 裁切所有圖層)
     https://wiki.openstreetmap.org/wiki/Zh-hant:Map_Features
     根據地名下載 OSM 圖層並各自儲存為 GeoJSON，適用於遊戲地圖製作。
 
     Args:
         place_name (str): 地名，例如 "Xinyi District, Taipei, Taiwan"
         save_dir (str): 儲存資料夾
+        mode: "location" | "bbox"
+        - location: 使用 place_name 下載
+        - Longitude_Latitude: 鎖定經緯度的一個範圍下載
+        - bbox: 使用經緯度範圍下載
+        bbox: (minx, miny, maxx, maxy)
+        center_longitude_latitude: (Longitude, Latitude)
+        width_km: 要多少公里寬
+        height_km: 要多少公尺高
     Returns:
         dict: 包含各圖層名稱與對應 GeoDataFrame 的字典
     """
     os.makedirs(save_dir, exist_ok=True)
     layers = {}
 
+    if mode == "location":
+        query_area = place_name
+        query_func = ox.features.features_from_place
+    elif mode == "bbox":
+        query_area = bbox
+        query_func = ox.features.features_from_bbox
+    elif mode == "longitude_latitude":
+        cx, cy = center_longitude_latitude
+        minx = cx-km_to_longitude_degrees(width_km/2, cy)
+        miny = cy-km_to_latitude_degrees(height_km/2)
+        maxx = cx+km_to_longitude_degrees(width_km/2, cy)
+        maxy = cy+km_to_latitude_degrees(height_km/2)
+        set_bbox = (minx, miny, maxx, maxy)
+        query_area = set_bbox
+        query_func = ox.features.features_from_bbox
+    else:
+        raise ValueError(f"Unsupported mode: {mode}")
+
     # 建築物
     print("🏢 下載建築物...")
-    gdf_building = ox.features.features_from_place(place_name, tags={"building": True})
-    gdf_building.to_file(ensure_path(save_dir, "buildings.geojson"), driver="GeoJSON")
-    layers["buildings"] = gdf_building
+    try:
+        gdf_building = query_func(query_area, tags={"building": True})
+        gdf_building.to_file(ensure_path(save_dir, "buildings.geojson"), driver="GeoJSON")
+        layers["buildings"] = gdf_building
+    except Exception as e:
+        print(f"⚠️ building 下載失敗：{e}")
+        delete_file_by_name(save_dir, "buildings.geojson")
 
     # 公園（leisure=park or playground）
     print("🌳 下載公園與綠地...")
-    gdf_parks = ox.features.features_from_place(place_name, tags={
-        "leisure": True,
-        "landuse": True,
-        "natural": ["grassland", "wood"]
-    })
-    gdf_parks.to_file(ensure_path(save_dir, "parks.geojson"), driver="GeoJSON")
-    layers["parks"] = gdf_parks
+    try:
+        gdf_parks = query_func(query_area, tags={
+            "leisure": True,
+            "landuse": True,
+            "natural": ["grassland", "wood"]
+        })
+        gdf_parks.to_file(ensure_path(save_dir, "parks.geojson"), driver="GeoJSON")
+        layers["parks"] = gdf_parks
+    except Exception as e:
+        print(f"⚠️ parks 下載失敗：{e}")
+        delete_file_by_name(save_dir, "parks.geojson")
+        exit("沒有綠地無法存取比例尺")
 
     minx, miny, maxx, maxy = gdf_parks.total_bounds
     geo_width = maxx - minx
@@ -51,37 +99,53 @@ def download_osm_layers(place_name: str, save_dir: str = "data"):
 
 
     # 道路（各級道路）
-    road_types = [
-        "motorway", "trunk", "primary", "secondary", "tertiary",
-        "residential", "unclassified", "service", "living_street",
-        "pedestrian", "footway", "cycleway", "path"
-    ]
+
     print("🛣️ 下載道路...")
-    gdf_roads = ox.features.features_from_place(place_name, tags={"highway": road_types})
-    gdf_roads.to_file(ensure_path(save_dir, "roads.geojson"), driver="GeoJSON")
-    layers["roads"] = gdf_roads
+    try:
+        road_types = [
+            "motorway", "trunk", "primary", "secondary", "tertiary",
+            "residential", "unclassified", "service", "living_street",
+            "pedestrian", "footway", "cycleway", "path"
+        ]
+        gdf_roads = query_func(query_area, tags={"highway": road_types})
+        gdf_roads.to_file(ensure_path(save_dir, "roads.geojson"), driver="GeoJSON")
+        layers["roads"] = gdf_roads
+    except Exception as e:
+        print(f"⚠️ highway 下載失敗：{e}")
 
     # 河流、湖泊（natural=water or waterway）
     print("🌊 下載水體（水域）...")
-    gdf_water = ox.features.features_from_place(place_name, tags={"natural": "water"})
-    gdf_water.to_file(ensure_path(save_dir, "water.geojson"), driver="GeoJSON")
-    layers["water"] = gdf_water
+    try:
+        gdf_water = query_func(query_area, tags={"natural": "water"})
+        gdf_water.to_file(ensure_path(save_dir, "water.geojson"), driver="GeoJSON")
+        layers["water"] = gdf_water
+    except Exception as e:
+        print(f"⚠️ water 下載失敗：{e}")
+        delete_file_by_name(save_dir, "water.geojson")
 
     # 河川與溪流（流動水體）
     print("🛶 下載河流與溪流...")
-    gdf_rivers = ox.features.features_from_place(place_name, tags={"waterway": True})
-    gdf_rivers.to_file(ensure_path(save_dir, "rivers.geojson"), driver="GeoJSON")
-    layers["rivers"] = gdf_rivers
+    try:
+        gdf_rivers = query_func(query_area, tags={"waterway": True})
+        gdf_rivers.to_file(ensure_path(save_dir, "rivers.geojson"), driver="GeoJSON")
+        layers["rivers"] = gdf_rivers
+    except Exception as e:
+        print(f"⚠️ rivers 下載失敗：{e}")
+        delete_file_by_name(save_dir, "rivers.geojson")
 
     # 森林或樹林區（natural=wood）
     print("🌲 下載森林區...")
-    gdf_wood = ox.features.features_from_place(place_name, tags={"natural": "wood"})
-    gdf_wood.to_file(ensure_path(save_dir, "forest.geojson"), driver="GeoJSON")
-    layers["forest"] = gdf_wood
+    try:
+        gdf_wood = query_func(query_area, tags={"natural": "wood"})
+        gdf_wood.to_file(ensure_path(save_dir, "forest.geojson"), driver="GeoJSON")
+        layers["forest"] = gdf_wood
+    except Exception as e:
+        print(f"⚠️ wood 下載失敗：{e}")
+        delete_file_by_name(save_dir, "forest.geojson")
 
     # 可選：地標（POI）
     # print("📍下載學校與車站...")
-    # gdf_poi = ox.features.features_from_place(place_name, tags={"amenity": ["school", "bus_station"]})
+    # gdf_poi = query_func(query_area, tags={"amenity": ["school", "bus_station"]})
     # gdf_poi.to_file(ensure_path(save_dir, "poi.geojson"), driver="GeoJSON")
     # layers["poi"] = gdf_poi
 
