@@ -1,5 +1,6 @@
 import os
 import osmnx as ox
+from shapely.geometry import box
 from shapely.lib import distance
 
 from map_skin_project.map_utils import ensure_path, save_map_metadata, km_to_latitude_degrees, km_to_longitude_degrees, delete_file_by_name
@@ -42,9 +43,12 @@ def download_osm_layers(
     if mode == "location":
         query_area = place_name
         query_func = ox.features.features_from_place
+        bbox_geom = None #假設: 命名取地區會自動截掉
     elif mode == "bbox":
         query_area = bbox
         query_func = ox.features.features_from_bbox
+        minx, miny, maxx, maxy = bbox
+        bbox_geom = box(minx, miny, maxx, maxy) # 用於截掉過長的圖層
     elif mode == "longitude_latitude":
         cx, cy = center_longitude_latitude
         minx = cx-km_to_longitude_degrees(width_km/2, cy)
@@ -54,18 +58,9 @@ def download_osm_layers(
         set_bbox = (minx, miny, maxx, maxy)
         query_area = set_bbox
         query_func = ox.features.features_from_bbox
+        bbox_geom = box(minx, miny, maxx, maxy) # 用於截掉過長的圖層
     else:
         raise ValueError(f"Unsupported mode: {mode}")
-
-    # 建築物
-    print("🏢 下載建築物...")
-    try:
-        gdf_building = query_func(query_area, tags={"building": True})
-        gdf_building.to_file(ensure_path(save_dir, "buildings.geojson"), driver="GeoJSON")
-        layers["buildings"] = gdf_building
-    except Exception as e:
-        print(f"⚠️ building 下載失敗：{e}")
-        delete_file_by_name(save_dir, "buildings.geojson")
 
     # 公園（leisure=park or playground）
     print("🌳 下載公園與綠地...")
@@ -75,31 +70,30 @@ def download_osm_layers(
             "landuse": True,
             "natural": ["grassland", "wood"]
         })
+        if bbox_geom is not None:
+            gdf_parks = gdf_parks.clip(bbox_geom)
         gdf_parks.to_file(ensure_path(save_dir, "parks.geojson"), driver="GeoJSON")
         layers["parks"] = gdf_parks
+
+        save_scale(gdf_parks)  # 儲存比例尺
     except Exception as e:
         print(f"⚠️ parks 下載失敗：{e}")
         delete_file_by_name(save_dir, "parks.geojson")
         exit("沒有綠地無法存取比例尺")
 
-    minx, miny, maxx, maxy = gdf_parks.total_bounds
-    geo_width = maxx - minx
-    geo_height = maxy - miny
-    degrees_per_pixel = geo_width / 6000
-
-    metadata = {
-        "geo_width_deg": geo_width,
-        "geo_height_deg": geo_height,
-        "degrees_per_pixel": degrees_per_pixel,
-    }
-
-    save_metadata_dir = "output/map_info.json"
-    save_map_metadata(filepath=save_metadata_dir, metadata=metadata)
-    print(f"✅ 已建立比例尺於：{save_metadata_dir}/")
-
+    # 建築物
+    print("🏢 下載建築物...")
+    try:
+        gdf_building = query_func(query_area, tags={"building": True})
+        if bbox_geom is not None:
+            gdf_building = gdf_building.clip(bbox_geom)
+        gdf_building.to_file(ensure_path(save_dir, "buildings.geojson"), driver="GeoJSON")
+        layers["buildings"] = gdf_building
+    except Exception as e:
+        print(f"⚠️ building 下載失敗：{e}")
+        delete_file_by_name(save_dir, "buildings.geojson")
 
     # 道路（各級道路）
-
     print("🛣️ 下載道路...")
     try:
         road_types = [
@@ -108,6 +102,8 @@ def download_osm_layers(
             "pedestrian", "footway", "cycleway", "path"
         ]
         gdf_roads = query_func(query_area, tags={"highway": road_types})
+        if bbox_geom is not None:
+            gdf_roads = gdf_roads.clip(bbox_geom)
         gdf_roads.to_file(ensure_path(save_dir, "roads.geojson"), driver="GeoJSON")
         layers["roads"] = gdf_roads
     except Exception as e:
@@ -117,6 +113,8 @@ def download_osm_layers(
     print("🌊 下載水體（水域）...")
     try:
         gdf_water = query_func(query_area, tags={"natural": "water"})
+        if bbox_geom is not None:
+            gdf_water = gdf_water.clip(bbox_geom)
         gdf_water.to_file(ensure_path(save_dir, "water.geojson"), driver="GeoJSON")
         layers["water"] = gdf_water
     except Exception as e:
@@ -127,6 +125,8 @@ def download_osm_layers(
     print("🛶 下載河流與溪流...")
     try:
         gdf_rivers = query_func(query_area, tags={"waterway": True})
+        if bbox_geom is not None:
+            gdf_rivers = gdf_rivers.clip(bbox_geom)
         gdf_rivers.to_file(ensure_path(save_dir, "rivers.geojson"), driver="GeoJSON")
         layers["rivers"] = gdf_rivers
     except Exception as e:
@@ -137,6 +137,8 @@ def download_osm_layers(
     print("🌲 下載森林區...")
     try:
         gdf_wood = query_func(query_area, tags={"natural": "wood"})
+        if bbox_geom is not None:
+            gdf_wood = gdf_wood.clip(bbox_geom)
         gdf_wood.to_file(ensure_path(save_dir, "forest.geojson"), driver="GeoJSON")
         layers["forest"] = gdf_wood
     except Exception as e:
@@ -151,6 +153,22 @@ def download_osm_layers(
 
     print(f"✅ 所有圖層已儲存至：{save_dir}/")
     return layers
+
+def save_scale(gdf_parks):
+    minx, miny, maxx, maxy = gdf_parks.total_bounds
+    geo_width = maxx - minx
+    geo_height = maxy - miny
+    degrees_per_pixel = geo_width / 6000
+
+    metadata = {
+        "geo_width_deg": geo_width,
+        "geo_height_deg": geo_height,
+        "degrees_per_pixel": degrees_per_pixel,
+    }
+
+    save_metadata_dir = "output/map_info.json"
+    save_map_metadata(filepath=save_metadata_dir, metadata=metadata)
+    print(f"✅ 已建立比例尺於：{save_metadata_dir}/")
 
 
 # 測試用
