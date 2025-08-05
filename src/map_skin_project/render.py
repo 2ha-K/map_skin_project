@@ -40,12 +40,44 @@ def render_map(data_dir="data", output_path="output/xinyi_map.png", skin_fn=None
             try:
                 gdf = gpd.read_file(filepath)
                 if not gdf.empty:
-                    gdf.plot(
-                        ax=ax,
-                        color=style["color"],
-                        alpha=style["alpha"], # 使用透明度（0 = 透明，1 = 不透明）
-                        linewidth=style["linewidth"] # 線條粗細，適用於線狀圖層（如道路、河流）
-                    )
+                    if layer == "roads" and "highway" in gdf.columns:
+                        # 設定每種道路類型的寬度
+                        highway_width_map = {
+                            "motorway": 3.2,  # 高速公路：顯著寬，通常雙向4~6線道
+                            "trunk": 2.8,  # 幹道：略小於高速公路
+                            "primary": 2.4,  # 主要幹道：一般大馬路
+                            "secondary": 1.8,  # 次要道路：次要市區道路
+                            "tertiary": 1.2,  # 第三級道路：街道或巷道
+                            "residential": 0.9,  # 住宅道路：社區道路
+                            "unclassified": 0.8,  # 不明類別：常當作一般小路顯示
+                            "service": 0.6,  # 服務道路：停車場進出道、小巷
+                            "living_street": 0.6,  # 居住街道：人車共道
+                            "pedestrian": 0.5,  # 行人道：僅限人行的步道
+                            "footway": 0.4,  # 腳踏步道：小徑
+                            "cycleway": 0.4,  # 單車道：城市腳踏車道
+                            "path": 0.35  # 小路、田野間步道
+                        }
+
+                        # 新增一欄 width，根據 highway 值對應
+                        gdf["width"] = gdf["highway"].map(highway_width_map).fillna(0.5)
+
+                        # 分類畫出不同線寬的道路
+                        for highway_type, group in gdf.groupby("highway"):
+                            lw = highway_width_map.get(highway_type, 0.5)
+                            group.plot(
+                                ax=ax,
+                                color=style["color"],
+                                alpha=style["alpha"],
+                                linewidth=lw
+                            )
+                    else:
+                        # 非道路圖層照舊處理
+                        gdf.plot(
+                            ax=ax,
+                            color=style["color"],
+                            alpha=style["alpha"],
+                            linewidth=style["linewidth"]
+                        )
             except Exception as e:
                 print(f"⚠️ Failed to render layer: {layer}, error: {e}")
 
@@ -56,7 +88,7 @@ def render_map(data_dir="data", output_path="output/xinyi_map.png", skin_fn=None
     plt.axis('off')
     plt.tight_layout() #  自動調整畫布內的空間配置，避免圖形被截掉
     os.makedirs(os.path.dirname(output_path), exist_ok=True)# exist_ok=True 表示：「如果資料夾已經存在也沒關係，不會報錯」。
-    plt.savefig(output_path, dpi=600, bbox_inches='tight', pad_inches=0, facecolor="#D3D3D3", transparent=False)
+    plt.savefig(output_path, dpi=600, bbox_inches='tight', pad_inches=0, facecolor="#d2d2f7", transparent=False)
     """
     bbox_inches='tight'	自動裁切圖片邊緣的空白區域
     pad_inches=0	不保留邊界空間（等於邊到邊）
