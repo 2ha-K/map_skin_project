@@ -66,9 +66,9 @@ def download_osm_layers(
     print("🌳 下載公園與綠地...")
     try:
         gdf_parks = query_func(query_area, tags={
-            "leisure": True,
-            "landuse": True,
-            "natural": ["grassland", "wood"]
+            "leisure": True,#研究
+            "landuse": True,#研究
+            "natural": ["grassland"]
         })
         if bbox_geom is not None:
             gdf_parks = gdf_parks.clip(bbox_geom)
@@ -84,7 +84,7 @@ def download_osm_layers(
     # 建築物
     print("🏢 下載建築物...")
     try:
-        gdf_building = query_func(query_area, tags={"building": True})
+        gdf_building = query_func(query_area, tags={"building": True, "aeroway": "runway"})
         if bbox_geom is not None:
             gdf_building = gdf_building.clip(bbox_geom)
         gdf_building.to_file(ensure_path(save_dir, "buildings.geojson"), driver="GeoJSON")
@@ -112,7 +112,7 @@ def download_osm_layers(
     # 河流、湖泊（natural=water or waterway）
     print("🌊 下載水體（水域）...")
     try:
-        gdf_water = query_func(query_area, tags={"natural": "water"})
+        gdf_water = query_func(query_area, tags={"natural": "water", "leisure": ["swimming_area", "swimming_pool"]})
         if bbox_geom is not None:
             gdf_water = gdf_water.clip(bbox_geom)
         gdf_water.to_file(ensure_path(save_dir, "water.geojson"), driver="GeoJSON")
