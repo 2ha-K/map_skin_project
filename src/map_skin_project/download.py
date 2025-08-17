@@ -43,22 +43,24 @@ def download_osm_layers(
     if mode == "location":
         query_area = place_name
         query_func = ox.features.features_from_place
-        bbox_geom = None #假設: 命名取地區會自動截掉
+        # 新增：用地名抓邊界
+        boundary = ox.geocode_to_gdf(place_name)
+        bbox_geom = boundary.geometry.unary_union  # 可能是 MultiPolygon → 合成一個
     elif mode == "bbox":
         query_area = bbox
         query_func = ox.features.features_from_bbox
         minx, miny, maxx, maxy = bbox
-        bbox_geom = box(minx, miny, maxx, maxy) # 用於截掉過長的圖層
+        bbox_geom = box(minx, miny, maxx, maxy)
     elif mode == "longitude_latitude":
         cx, cy = center_longitude_latitude
-        minx = cx-km_to_longitude_degrees(width_km/2, cy)
-        miny = cy-km_to_latitude_degrees(height_km/2)
-        maxx = cx+km_to_longitude_degrees(width_km/2, cy)
-        maxy = cy+km_to_latitude_degrees(height_km/2)
+        minx = cx - km_to_longitude_degrees(width_km / 2, cy)
+        miny = cy - km_to_latitude_degrees(height_km / 2)
+        maxx = cx + km_to_longitude_degrees(width_km / 2, cy)
+        maxy = cy + km_to_latitude_degrees(height_km / 2)
         set_bbox = (minx, miny, maxx, maxy)
         query_area = set_bbox
         query_func = ox.features.features_from_bbox
-        bbox_geom = box(minx, miny, maxx, maxy) # 用於截掉過長的圖層
+        bbox_geom = box(minx, miny, maxx, maxy)
     else:
         raise ValueError(f"Unsupported mode: {mode}")
 
