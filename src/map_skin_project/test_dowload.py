@@ -2,7 +2,7 @@ from download import download_osm_layers
 from  render import render_map
 from PIL import Image
 
-download_osm_layers(place_name="逢甲大學, 台中市, 台灣")
+download_osm_layers(place_name="清華大學, 新竹市, 台灣")
 # download_osm_layers(mode="bbox", bbox=(120.6415, 24.1805, 120.6498,24.1858))
 # download_osm_layers(mode="longitude_latitude", center_longitude_latitude=(121.5397, 25.0173))
 

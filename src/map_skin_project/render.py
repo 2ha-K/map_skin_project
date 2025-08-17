@@ -2,10 +2,11 @@
 
 import geopandas as gpd
 import matplotlib.pyplot as plt
+import matplotlib.patheffects as pe
 import os
 
 
-def render_map(data_dir="data", output_path="output/xinyi_map.png", skin_fn=None):
+def render_map(data_dir="data", output_path="output/xinyi_map.png", skin_fn=None, shadowed=True):
     """
     TODO: 貼皮功能
     讀取 GeoJSON 並畫出地圖，支援貼皮圖層函數（可選）。
@@ -50,7 +51,7 @@ def render_map(data_dir="data", output_path="output/xinyi_map.png", skin_fn=None
                             "tertiary": 0.0,#12.0,  # 第三級道路：街道或巷道
                             "residential": 0.0,#9.0,  # 住宅道路：社區道路
                             "unclassified": 0.0,#8.0,  # 不明類別：常當作一般小路顯示
-                            "service": 4.0,#6.0,  # 服務道路：停車場進出道、小巷
+                            "service": 1.0,#6.0,  # 服務道路：停車場進出道、小巷
                             "living_street": 0.0,#6.0,  # 居住街道：人車共道
                             "pedestrian": 1.0,#5.0,  # 行人道：僅限人行的步道
                             "footway": 0.0,#4.0,  # 腳踏步道：小徑
@@ -70,6 +71,27 @@ def render_map(data_dir="data", output_path="output/xinyi_map.png", skin_fn=None
                                 alpha=style["alpha"],
                                 linewidth=lw
                             )
+                    elif layer == "buildings" and shadowed:
+                        # ---- 先畫陰影層 ----
+                        start = len(ax.collections)  # 記錄目前已有的 collections 數
+                        gdf.plot(ax=ax, color="#c7ccd3", edgecolor="none")  # 先畫一次以生成 collections
+
+                        shadow_effect = [
+                            pe.SimplePatchShadow(
+                                offset=(0.5, -0.5),  # 右下偏移
+                                alpha=0.35,  # 透明度
+                                rho=1.0,  # 陰影大小比例
+                                shadow_rgbFace=(0, 0, 0)
+                            ),
+                            pe.Normal()  # 再把原圖形畫回來
+                        ]
+
+                        # 把這次新增的所有 collections 都套上陰影
+                        for coll in ax.collections[start:]:
+                            coll.set_path_effects(shadow_effect)
+
+                        # ---- 再畫本體層（覆蓋在陰影上）----
+                        gdf.plot(ax=ax, color="#c2b7cd", edgecolor="#b5bbc4", linewidth=0.3)
                     else:
                         # 非道路圖層照舊處理
                         gdf.plot(
