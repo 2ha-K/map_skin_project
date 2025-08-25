@@ -168,7 +168,11 @@ def save_scale(gdf_parks):
         "degrees_per_pixel": degrees_per_pixel,
     }
 
+    save_dir = "output"
+    os.makedirs(save_dir, exist_ok=True)
+
     save_metadata_dir = "output/map_info.json"
+
     save_map_metadata(filepath=save_metadata_dir, metadata=metadata)
     print(f"✅ 已建立比例尺於：{save_metadata_dir}/")
 
